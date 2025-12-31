@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Management Dashboard</title>
+
+    <style>
+        body { font-family: Arial; margin: 40px; background: #f6f6f6; }
+        h1 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; }
+        th { background: #f0f0f0; }
+        button { padding: 6px 10px; margin: 2px; cursor: pointer; border-radius: 6px; border: 1px solid #bbb; background: #fff; }
+        #form { background: #fff; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        input[type="text"] { padding: 8px; width: 250px; border: 1px solid #ccc; border-radius: 4px; }
+        .controls { margin-top: 12px; }
+    </style>
+</head>
+<body>
+
+<h1>User Management Dashboard</h1>
+
+<!-- Sorting Controls -->
+<div class="controls">
+Sort by:
+<select id="sortField">
+    <option value="id">ID</option>
+    <option value="name">Name</option>
+</select>
+
+<select id="sortDir">
+    <option value="asc">Ascending</option>
+    <option value="desc">Descending</option>
+</select>
+
+<button id="applyBtn">Apply</button>
+</div>
+
+<!-- User Table -->
+<table>
+    <thead>
+        <tr><th>ID</th><th>Name</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="userTable"></tbody>
+</table>
+
+<!-- Pagination -->
+<div style="margin-top:10px;">
+    <button id="prevBtn">Previous</button>
+    <span id="pageNum"></span>
+    <button id="nextBtn">Next</button>
+</div>
+
+<!-- Form -->
+<div id="form">
+    <h3 id="formTitle">Add User</h3>
+    <input type="hidden" id="userId">
+    <input id="name" type="text" placeholder="Enter name">
+    <button id="saveBtn">Save</button>
+</div>
+
+<script>
+let page = 0;
+let size = 5;
+const baseUrl = "/users";
+const userTable = document.getElementById('userTable');
+const pageNum = document.getElementById('pageNum');
+
+document.getElementById('applyBtn').addEventListener('click', () => { page = 0; loadUsers(); });
+document.getElementById('nextBtn').addEventListener('click', () => { page++; loadUsers(); });
+document.getElementById('prevBtn').addEventListener('click', () => { if (page>0) page--; loadUsers(); });
+document.getElementById('saveBtn').addEventListener('click', saveUser);
+
+function loadUsers() {
+    let sortField = document.getElementById("sortField").value;
+    let sortDir = document.getElementById("sortDir").value;
+
+    fetch(`${baseUrl}?page=${page}&size=${size}&sortField=${sortField}&sortDir=${sortDir}`)
+        .then(res => res.json())
+        .then(data => {
+            let rows = "";
+            data.content.forEach(u => {
+                rows += `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.name}</td>
+                        <td>
+                            <button onclick="editUser(${u.id}, '${u.name.replace("'","\'")}')">Edit</button>
+                            <button onclick="deleteUser(${u.id})">Delete</button>
+                        </td>
+                    </tr>`;
+            });
+            userTable.innerHTML = rows;
+            pageNum.innerText = `Page ${page + 1} of ${data.totalPages} (Total: ${data.totalElements})`;
+            // disable prev/next when not available
+            document.getElementById('prevBtn').disabled = page <= 0;
+            document.getElementById('nextBtn').disabled = page >= data.totalPages - 1;
+        });
+}
+
+function saveUser() {
+    let id = document.getElementById("userId").value;
+    let name = document.getElementById("name").value.trim();
+    if (!name) { alert('Enter a name'); return; }
+
+    let method = id ? "PUT" : "POST";
+    let url = id ? `${baseUrl}/${id}` : baseUrl;
+
+    fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+    }).then(() => {
+        document.getElementById("name").value = "";
+        document.getElementById("userId").value = "";
+        document.getElementById("formTitle").innerText = "Add User";
+        loadUsers();
+    });
+}
+
+function editUser(id, name) {
+    document.getElementById("userId").value = id;
+    document.getElementById("name").value = name;
+    document.getElementById("formTitle").innerText = "Update User";
+}
+
+function deleteUser(id) {
+    if (confirm("Delete this user?")) {
+        fetch(`${baseUrl}/${id}`, { method: "DELETE" })
+            .then(() => loadUsers());
+    }
+}
+
+window.onload = loadUsers;
+</script>
+
+</body>
+</html>
