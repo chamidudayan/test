@@ -1,8 +1,5 @@
 # User Management Dashboard - Spring Boot Project
 
-## Dev Branch
-## dev branch 3
-
 ## What this contains
 - Spring Boot backend (Java) with a simple User entity and CRUD + pagination + sorting endpoints.
 - Static HTML/JS UI located at `src/main/resources/static/user-dashboard.html`.
